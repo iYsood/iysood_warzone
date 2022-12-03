@@ -50,15 +50,27 @@ AddEventHandler('iysood_warzone:death_recorded', function(team)
   DoScreenFadeIn(800)
 end)
 
+function GetPlayerByEntityID(id)
+	for i=0,4096 do
+		if(NetworkIsPlayerActive(i) and GetPlayerPed(i) == id) then return i end
+	end
+	return nil
+end
+
+RegisterNetEvent('esx:onPlayerDeath')
 AddEventHandler('esx:onPlayerDeath', function(data)
   -- WILL GET -->
   -- data.deathCause
-  -- data.killedByPlayer
+  -- data.killerServerId
 
-  if inside_zone and data.killedByPlayer then
-    TriggerServerEvent('iysood_warzone:record_death', data.killedByPlayer)
+  local player = PlayerId()
+  local killer, killerweapon = NetworkGetEntityKillerOfPlayer(player)
+  local killerid = GetPlayerByEntityID(killer)
+  local killerServId = GetPlayerServerId(killerid)
+
+  if inside_zone and killerServId then
+    TriggerServerEvent('iysood_warzone:record_death', killerServId)
   end
-  -- TriggerEvent('iysood_warzone:revive')
 end)
 
 function RespawnPed(ped, coords, heading)
@@ -363,7 +375,6 @@ cleanPlayer = function(playerPed)
 end
 
 setUniform = function(playerPed, uniform)
-  print(playerPed, uniform)
 	TriggerEvent('skinchanger:getSkin', function(skin)
 		cleanPlayer(playerPed)
 		local uniformObject
@@ -398,9 +409,17 @@ AddEventHandler('iysood_warzone:update_data', function(fetch_data)
   for k,v in pairs(fetch_data) do
     total_players = total_players + 1
     if v.kill > first_count then
+      if first_count > 0 and first_name ~= nil then
+        second_count = first_count
+        second_name = first_name
+      end
       first_count = v.kill
       first_name = v.name
     elseif v.kill > second_count then
+      if third_count > 0 and third_name ~= nil then
+        third_count = second_count
+        third_name = second_name
+      end
       second_count = v.kill
       second_name = v.name
     elseif v.kill > third_count then
@@ -410,8 +429,8 @@ AddEventHandler('iysood_warzone:update_data', function(fetch_data)
   end
 
   team_info = {
-    first = '['.. third_count ..'] '.. first_name,
-    second = '['.. third_count ..'] '.. second_name,
+    first = '['.. first_count ..'] '.. first_name,
+    second = '['.. second_count ..'] '.. second_name,
     third = '['.. third_count ..'] '.. third_name,
     kill = fetch_data[playerServId].kill,
     death = fetch_data[playerServId].death,

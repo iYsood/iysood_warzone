@@ -21,8 +21,6 @@ RegisterServerEvent('iysood_warzone:record_death')
 AddEventHandler('iysood_warzone:record_death', function(killedBy)
 	local _source = source
 
-  print(_source, killedBy)
-
   if teams_data[_source] ~= nil then
     local killerBy = killedBy
     teams_data[_source].death = teams_data[_source].death + 1

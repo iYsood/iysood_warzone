@@ -6,8 +6,8 @@ Config.MarkerSize = {x = 1.5, y = 1.5, z = 1.5}
 Config.MarkerSize2 = { x = 1.5, y = 1.5, z = 15.5 }
 Config.MarkerColor = {r = 51, g = 153, b = 255}
 Config.MarkerColor2 = {
-  blue_team = { r = 99, g = 71, b = 255 },
-  red_team = { r = 255, g = 99, b = 71 },
+  red_team = { r = 99, g = 71, b = 255 },
+  blue_team = { r = 255, g = 99, b = 71 },
 }
 Config.DrawDistance = 100
 
