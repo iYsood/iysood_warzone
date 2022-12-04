@@ -10,6 +10,7 @@ Config.MarkerColor2 = {
   blue_team = { r = 255, g = 99, b = 71 },
 }
 Config.DrawDistance = 100
+Config.WaitBeforeStart = 15 -- كم ثانية انتظار لبدء الحرب
 
 Config.Zone = {
   Enter = { Pos = vector3(2054.67, 2713.38, 46.49), title = _U('text_Enter') },

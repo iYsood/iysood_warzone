@@ -17,7 +17,6 @@ Citizen.CreateThread(function()
   end
 
   ESX.PlayerData = ESX.GetPlayerData()
-  -- TriggerEvent('iysood_warzone:death_recorded', 'red_team')
 end)
 
 RegisterNetEvent('esx:playerLoaded')
@@ -59,10 +58,6 @@ end
 
 RegisterNetEvent('esx:onPlayerDeath')
 AddEventHandler('esx:onPlayerDeath', function(data)
-  -- WILL GET -->
-  -- data.deathCause
-  -- data.killerServerId
-
   local player = PlayerId()
   local killer, killerweapon = NetworkGetEntityKillerOfPlayer(player)
   local killerid = GetPlayerByEntityID(killer)
@@ -79,14 +74,18 @@ function RespawnPed(ped, coords, heading)
   SetPlayerInvincible(ped, false)
   ClearPedBloodDamage(ped)
 
+  RemoveWeaponFromPed(PlayerPedId(), addingWeapon)
+  toAddWeapon = math.random(1, #Config.Weapons)
+  addingWeapon = GetHashKey(Config.Weapons[toAddWeapon])
+  GiveWeaponToPed(PlayerPedId(), addingWeapon, 500, false, true)
+  ESX.ShowNotification(_U('your_weapon', ESX.GetWeaponLabel(Config.Weapons[toAddWeapon]), toAddWeapon, #Config.Weapons))
+
   TriggerServerEvent('esx:onPlayerSpawn')
   TriggerEvent('esx:onPlayerSpawn')
   TriggerEvent('playerSpawned') -- compatibility with old scripts, will be removed soon
 end
 
 AddEventHandler('iysood_warzone:hasEnteredMarker', function(station)
-  print('hasEnteredMarker', station)
-
 	if station == 'Enter' then
 		CurrentAction     = 'menu_enter'
 		CurrentActionMsg  = _U('open_enter_menu')
@@ -111,8 +110,6 @@ AddEventHandler('iysood_warzone:hasEnteredMarker', function(station)
 end)
 
 AddEventHandler('iysood_warzone:hasExitedMarker', function(station)
-  print('hasExitedMarker', station)
-
 	if not isInShopMenu then
 		ESX.UI.Menu.CloseAll()
 	end
@@ -155,7 +152,7 @@ CreateThread(function()
         if k == 'blue_team' or k == 'red_team' then
           DrawMarker(Config.MarkerType[k], v.Pos, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.MarkerSize2.x, Config.MarkerSize2.y, Config.MarkerSize2.z, Config.MarkerColor2[k].r, Config.MarkerColor2[k].g, Config.MarkerColor2[k].b, 100, false, true, 2, true, false, false, false)
         else
-          if v.title ~= nil then
+          if v.title ~= nil and distance < (Config.MarkerSize.x * 10) then
             ESX.Game.Utils.DrawText3D({ x = v.Pos.x, y = v.Pos.y, z = v.Pos.z + 1.0 }, v.title)
           end
           DrawMarker(Config.MarkerType[k], v.Pos, 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.MarkerSize.x, Config.MarkerSize.y, Config.MarkerSize.z, Config.MarkerColor.r, Config.MarkerColor.g, Config.MarkerColor.b, 100, false, true, 2, true, false, false, false)
@@ -211,10 +208,6 @@ Citizen.CreateThread(function()
           open_menu_enter()
         elseif CurrentAction == 'menu_exit' then
           open_menu_exit()
-        elseif CurrentAction == 'menu_blue_team' then
-          open_menu_blue_team()
-        elseif CurrentAction == 'menu_red_team' then
-          open_menu_red_team()
         elseif CurrentAction == 'menu_reset' then
           open_menu_reset()
         elseif CurrentAction == 'menu_action' then
@@ -274,16 +267,26 @@ open_menu_exit = function()
   end)
 end
 
-open_menu_blue_team = function()
-  ESX.ShowNotification('menu_blue_team')
-end
-
-open_menu_red_team = function()
-  ESX.ShowNotification('menu_red_team')
-end
-
 open_menu_reset = function()
-  ESX.ShowNotification('menu_reset')
+  ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'open_menu_reset', {
+    title    = _U('confirm_reset_status'),
+    align    = 'bottom-right',
+    elements = {
+      { label = _U('return') },
+      { label = _U('yes'), value = true }
+    }
+  }, function(data, menu)
+    menu.close()
+
+    if data.current.value then
+      ESX.TriggerServerCallback('iysood_warzone:reset_status', function(res)
+        -- Do Somthing
+      end)
+    end
+
+  end, function(data, menu)
+    menu.close()
+  end)
 end
 
 open_menu_action = function()
@@ -324,7 +327,7 @@ open_menu_action = function()
           in_team = true
 
           setUniform(PlayerPedId(), data.current.value)
-          local toAddWeapon = math.random(0, #Config.Weapons)
+          local toAddWeapon = math.random(1, #Config.Weapons)
           addingWeapon = GetHashKey(Config.Weapons[toAddWeapon])
           GiveWeaponToPed(PlayerPedId(), addingWeapon, 500, false, true)
           ESX.ShowNotification(_U('your_weapon', ESX.GetWeaponLabel(Config.Weapons[toAddWeapon]), toAddWeapon, #Config.Weapons))
@@ -339,7 +342,7 @@ open_menu_action = function()
 end
 
 open_menu_start = function()
-  ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'open_menu_action', {
+  ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'open_menu_start', {
 		title    = _U('start_war'),
 		align    = 'bottom-right',
 		elements = {
@@ -363,7 +366,15 @@ open_menu_start = function()
 end
 
 start_war_action = function()
-
+  local timing = Config.WaitBeforeStart
+  PlaySoundFrontend(-1, "Mission_Pass_Notify", '"DLC_HEISTS_GENERAL_FRONTEND_SOUNDS"', true)
+  while timing > 0 do
+    ESX.Scaleform.ShowFreemodeMessage(timing, _U('be_ready'), 2)
+    timing = timing - 1
+  end
+  PlaySoundFrontend(-1, "Mission_Pass_Notify", '"DLC_HEISTS_GENERAL_FRONTEND_SOUNDS"', true)
+  local title = '<FONT FACE="sharlock">'.. _U('war_is_start')
+  ESX.Scaleform.ShowFreemodeMessage(title, _U('be_ready'), 2)
 end
 
 cleanPlayer = function(playerPed)
@@ -405,9 +416,17 @@ AddEventHandler('iysood_warzone:update_data', function(fetch_data)
   local second_count, second_name = 0, ''
   local third_count, third_name = 0, ''
   local total_players = 0
+  local total_orange, total_purple = 0, 0
 
   for k,v in pairs(fetch_data) do
     total_players = total_players + 1
+
+    if v.team == 'blue_team' then
+      total_orange = total_orange + v.kill
+    elseif v.team == 'blue_team' then
+      total_purple = total_purple + v.kill
+    end
+
     if v.kill > first_count then
       if first_count > 0 and first_name ~= nil then
         second_count = first_count
@@ -432,6 +451,8 @@ AddEventHandler('iysood_warzone:update_data', function(fetch_data)
     first = '['.. first_count ..'] '.. first_name,
     second = '['.. second_count ..'] '.. second_name,
     third = '['.. third_count ..'] '.. third_name,
+    total_orange = total_orange,
+    total_purple = total_purple,
     kill = fetch_data[playerServId].kill,
     death = fetch_data[playerServId].death,
     total = total_players,
@@ -459,7 +480,8 @@ Citizen.CreateThread(function()
 
     if team_info.kill ~= nil then
       letSleep = false
-      drawingText(_U('lang_first', team_info.first), 0.9, 0.6)
+      drawingText(_U('all_teams', team_info.total_orange, team_info.total_purple), 0.9, 0.57)
+      drawingText(_U('lang_first', team_info.first), 0.9, 0.60)
       drawingText(_U('lang_second', team_info.second), 0.9, 0.63)
       drawingText(_U('lang_third', team_info.third), 0.9, 0.66)
       drawingText(_U('lang_level'), 0.9, 0.69)

@@ -16,6 +16,15 @@ ESX.RegisterServerCallback('iysood_warzone:register_team', function(source, cb, 
   cb(teams_data[xPlayer.source])
 end)
 
+ESX.RegisterServerCallback('iysood_warzone:reset_status', function(source, cb, team, state)
+  local xPlayer = ESX.GetPlayerFromId(source)
+
+  teams_data[xPlayer.source] = { kill = 0, death = 0, name = xPlayer.getName(), team = team }
+
+  xPlayer.showNotification(_U('success_reset_status'))
+  cb(true)
+end)
+
 -- -- AddEventHandler('esx:onPlayerDeath', function(data)
 RegisterServerEvent('iysood_warzone:record_death')
 AddEventHandler('iysood_warzone:record_death', function(killedBy)
